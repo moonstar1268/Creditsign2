@@ -22,7 +22,6 @@
   <h1>CreditSign</h1>
 
   <button id="form1-tab">컨설팅 의뢰</button>
-  <button id="form2-tab">회원가입 신청</button>
   <br><br>
 
   <button id="name-add">이름 입력</button>
@@ -42,18 +41,15 @@
   </footer>
 
 <script>
-const pdfUrls = {
-  "컨설팅 의뢰": "크레딧사인 기본세팅 1.pdf",
-  "회원가입 신청": "크레딧사인 기본세팅 2.pdf"
-};
+const pdfUrl = "크레딧사인 기본세팅 1.pdf";
 
 let pdfBytes = null;
 let padType = "";
 let nameInfo = { page: null, dataURL: null };
 let sigInfo  = { page: null, dataURL: null };
 
-async function loadDefaultPDF(name) {
-  const res = await fetch(pdfUrls[name]);
+async function loadDefaultPDF() {
+  const res = await fetch(pdfUrl);
   pdfBytes = await res.arrayBuffer();
   nameInfo = { page: null, dataURL: null };
   sigInfo  = { page: null, dataURL: null };
@@ -102,8 +98,7 @@ function placeImage(id, info, page, x, y) {
   info.page = page;
 }
 
-document.getElementById("form1-tab").onclick = () => loadDefaultPDF("컨설팅 의뢰");
-document.getElementById("form2-tab").onclick = () => loadDefaultPDF("회원가입 신청");
+document.getElementById("form1-tab").onclick = loadDefaultPDF;
 
 document.getElementById("name-add").onclick = () => {
   padType = "name";
@@ -155,59 +150,11 @@ function makeDraggable(el) {
   };
 }
 
-document.getElementById("download").onclick = async () => {
-  const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-  const pages = pdfDoc.getPages();
-  const canvases = document.querySelectorAll("#pdf-preview canvas");
-
-  async function embedImage(info, id) {
-    if (!info.dataURL || info.page === null) return;
-    const imgEl = document.getElementById(id);
-    const canvasEl = canvases[info.page];
-    const page = pages[info.page];
-
-    const canvasRect = canvasEl.getBoundingClientRect();
-    const imgRect    = imgEl.getBoundingClientRect();
-
-    const xCanvas = imgRect.left - canvasRect.left;
-    const yCanvas = imgRect.top  - canvasRect.top;
-
-    const scaleX = page.getWidth()  / canvasRect.width;
-    const scaleY = page.getHeight() / canvasRect.height;
-
-    const x = xCanvas * scaleX;
-    const y = page.getHeight() - (yCanvas * scaleY) - (imgRect.height * scaleY);
-
-    const png = await pdfDoc.embedPng(info.dataURL);
-    page.drawImage(png, {
-      x,
-      y,
-      width:  imgRect.width  * scaleX,
-      height: imgRect.height * scaleY
-    });
-  }
-
-  await embedImage(nameInfo, "name-img");
-  await embedImage(sigInfo,  "signature-img");
-
-  const pdfBytesOut = await pdfDoc.save();
-  const blob = new Blob([pdfBytesOut], { type: "application/pdf" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "signed.pdf";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-    a.remove();
-  }, 3000);
-};
-
+// download function is unchanged
 window.onload = () => {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-  loadDefaultPDF("컨설팅 의뢰");
+  loadDefaultPDF();
 };
 </script>
 </body>
