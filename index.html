@@ -16,12 +16,14 @@
       position:absolute; cursor:move; border:1px solid #333;
       width:150px;
     }
+    button {
+      transform: scale(2, 1.5);
+    }
   </style>
 </head>
 <body>
   <h1>CreditSign</h1>
 
-  <button id="form1-tab">컨설팅 의뢰</button>
   <br><br>
 
   <button id="name-add">이름 입력</button>
@@ -98,7 +100,7 @@ function placeImage(id, info, page, x, y) {
   info.page = page;
 }
 
-document.getElementById("form1-tab").onclick = loadDefaultPDF;
+window.onload = loadDefaultPDF;
 
 document.getElementById("name-add").onclick = () => {
   padType = "name";
@@ -150,12 +152,7 @@ function makeDraggable(el) {
   };
 }
 
-// download function is unchanged
-window.onload = () => {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-  loadDefaultPDF();
-};
+// download function remains unchanged
 </script>
 </body>
 </html>
