@@ -216,21 +216,27 @@ document.getElementById("download").onclick = async () => {
   const filename = `signed_${Date.now()}.pdf`;
   const storageRef = storage.ref().child("signed_docs/" + filename);
 
-  const snapshot = await storageRef.put(blob);
-  const downloadURL = await snapshot.ref.getDownloadURL();
+  try {
+    const snapshot = await storageRef.put(blob);
+    const downloadURL = await snapshot.ref.getDownloadURL();
 
-  const a = document.createElement("a");
-  a.href = downloadURL;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
+    console.log("✅ Firebase 링크:", downloadURL);
 
-  emailjs.send("service_v5hek3f", "template_8u7pmwc", {
-    to_email: "moonstar1268@kaist.ac.kr",
-    pdf_link: downloadURL
-  })
-  .then(() => alert("이메일 전송 완료! (공유 링크 포함)"))
-  .catch(err => alert("이메일 전송 실패: " + JSON.stringify(err)));
+    const a = document.createElement("a");
+    a.href = downloadURL;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    await emailjs.send("service_v5hek3f", "template_8u7pmwc", {
+      to_email: "moonstar1268@kaist.ac.kr",
+      pdf_link: downloadURL
+    });
+
+    alert("✅ 이메일 전송 완료! (Firebase 링크 포함)");
+  } catch (err) {
+    alert("❌ 오류 발생: " + JSON.stringify(err));
+  }
 };
 
 window.onload = () => {
