@@ -9,10 +9,23 @@
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
   <script>
     (function(){
       emailjs.init({ publicKey: "e91b6FwpgpxBYA76r" });
     })();
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFHoGUSSV_XYcdx5j-lk7POD7DpK0DBzA",
+      authDomain: "creditsign-4cd56.firebaseapp.com",
+      projectId: "creditsign-4cd56",
+      storageBucket: "creditsign-4cd56.appspot.com",
+      messagingSenderId: "850755768885",
+      appId: "1:850755768885:web:d1162aa3b0a181f330177c"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const storage = firebase.storage();
   </script>
 
   <style>
@@ -198,25 +211,28 @@ document.getElementById("download").onclick = async () => {
 
   const pdfBytesOut = await pdfDoc.save();
   const blob = new Blob([pdfBytesOut], { type: "application/pdf" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "signed.pdf";
-  document.body.appendChild(a);
-  a.click();
+  const filename = `signed_${Date.now()}.pdf`;
+  const storageRef = storage.ref().child("signed_docs/" + filename);
 
-  // 이메일 전송은 URL로 전달 (Base64 X)
-  emailjs.send("service_v5hek3f", "template_8u7pmwc", {
-    to_email: "moonstar1268@kaist.ac.kr",
-    pdf_link: url
-  })
-  .then(() => alert("이메일 전송 완료! (링크 포함)"))
-  .catch(err => alert("이메일 전송 실패: " + JSON.stringify(err)));
+  try {
+    const snapshot = await storageRef.put(blob);
+    const downloadURL = await snapshot.ref.getDownloadURL();
 
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-    a.remove();
-  }, 3000);
+    const a = document.createElement("a");
+    a.href = downloadURL;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    await emailjs.send("service_v5hek3f", "template_8u7pmwc", {
+      to_email: "moonstar1268@kaist.ac.kr",
+      pdf_link: downloadURL
+    });
+
+    alert("✅ 이메일 전송 완료! (Firebase 링크 포함)");
+  } catch (err) {
+    alert("❌ 오류 발생: " + JSON.stringify(err));
+  }
 };
 
 window.onload = () => {
