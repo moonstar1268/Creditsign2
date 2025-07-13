@@ -45,9 +45,6 @@
 <body>
   <h1>CreditSign – 회원가입 신청</h1>
 
-  <!-- 탭 제거: 단일 폼만 사용하므로 버튼 삭제 -->
-  <br />
-
   <button id="name-add">이름 입력</button>
   <button id="open-pad">➕ 서명 추가</button>
   <button id="download">⬇️ 서명된 문서 다운로드</button>
@@ -63,13 +60,12 @@
   <footer style="margin-top:20px;font-size:14px;color:#666;">Copyright © 한국금융범죄예방연구센터</footer>
 
 <script>
-/* ---------------- PDF 로딩 (회원가입 신청만) ---------------- */
-const pdfUrl = "크레딧사인 기본세팅 2.pdf"; // 회원가입 신청용
+const pdfUrl = "크레딧사인 기본세팅 2.pdf";
 let pdfBytes=null, padType="", nameInfo={page:null,dataURL:null}, sigInfo={page:null,dataURL:null};
 
 async function loadPDF(){
-  const res = await fetch(pdfUrl);
-  pdfBytes = await res.arrayBuffer();
+  const res=await fetch(pdfUrl);
+  pdfBytes=await res.arrayBuffer();
   nameInfo={page:null,dataURL:null}; sigInfo={page:null,dataURL:null};
   clearElements();
   const wrap=document.getElementById("pdf-preview"); wrap.innerHTML="";
@@ -85,19 +81,22 @@ async function loadPDF(){
   }
 }
 function clearElements(){document.querySelectorAll("#name-img,#signature-img").forEach(el=>el.remove()); document.getElementById("pad-wrapper").classList.add("hidden");}
-
-/* 이미지 배치 */
 function onCanvasClick(e,canvas){const idx=Number(canvas.dataset.page);const[x,y]=[e.pageX,e.pageY];if(padType==="name")placeImage("name-img",nameInfo,idx,x,y);else if(padType==="sig")placeImage("signature-img",sigInfo,idx,x,y);} 
 function placeImage(id,info,page,x,y){document.getElementById(id)?.remove();const img=document.createElement("img");img.id=id;img.src=info.dataURL;img.style.left=x+"px";img.style.top=y+"px";document.body.appendChild(img);makeDraggable(img);info.page=page;}
 
-/* 버튼 핸들러 */
 document.getElementById("name-add").onclick=()=>{padType="name";openPad();};
 document.getElementById("open-pad").onclick=()=>{padType="sig";openPad();};
-
 function openPad(){document.getElementById("pad-wrapper").classList.remove("hidden");initSignaturePad();}
 function initSignaturePad(){const canvas=document.getElementById("sig-canvas");if(!window.signaturePad){window.signaturePad=new SignaturePad(canvas);document.getElementById("clear").onclick=()=>signaturePad.clear();document.getElementById("save-sig").onclick=()=>{if(signaturePad.isEmpty()){alert(padType==="name"?"이름을 입력하세요":"서명을 입력하세요");return;}const du=signaturePad.toDataURL();if(padType==="name")nameInfo.dataURL=du;else sigInfo.dataURL=du;document.getElementById("pad-wrapper").classList.add("hidden");alert(padType==="name"?"이름 배치할 위치를 클릭하세요":"서명 배치할 위치를 클릭하세요");};}else signaturePad.clear();}
 function makeDraggable(el){el.onmousedown=e=>{const r=el.getBoundingClientRect();const[sx,sy]=[e.clientX-r.left,e.clientY-r.top];document.onmousemove=ev=>{el.style.left=ev.pageX-sx+"px";el.style.top=ev.pageY-sy+"px";};document.onmouseup=()=>{document.onmousemove=document.onmouseup=null;};};}
 
-/* 다운로드 & 업로드 */
 const downloadBtn=document.getElementById("download");
-downloadBtn.onclick=async()=>{if(downloadBtn.disabled)return;alert("문서 준비 중입니다. 10초 정도 소요되니 기다려주세요.");downloadBtn.disabled=true;if(!pdfBytes){alert("PDF를 먼저 선택하세요");downloadBtn.disabled=false;return;}try{const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);const pages=pdfDoc.getPages();const canv=document.querySelectorAll("#pdf-preview canvas");const embed=async(info,id)=>{if(!info.dataURL||info.page===null)return;const img=document.getElementById(id);const c=canv[info.page];const page=pages[info.page];const cR=c.getBoundingClientRect();const iR=img.getBoundingClientRect();const sX=page.getWidth()/cR.width,sY=page.getHeight()/cR.height;const x=(iR.left-cR.left)*sX;const y=page.getHeight()-(iR.top-cR.top)*sY-iR.height*sY;const png=await pdfDoc.embedPng(info.dataURL);page.drawImage(png,{x,y,width:iR.width*sX,height:iR.height*sY});};await embed(nameInfo,"name-img");await embed(sigInfo,"signature-img");const bytes=await pdfDoc.save();const blob=new Blob([bytes],{type:"application/pdf"});const filename=`signed_${Date.now()}.pdf`;const snap=await storage.ref().child(`signed_docs/${filename}`).put(blob);const dl=await snap.ref.getDownloadURL();console.log("📦 Firebase URL:",dl);const a=document.createElement("a");a.href=dl;a.download=filename;document.body.appendChild(a);a.click();a.remove();await emailjs.send("service_v5hek3f","template_8u7pmwc",{to_email:"moonstar1268@kaist.ac.kr",pdf_link
+downloadBtn.onclick=async()=>{if(downloadBtn.disabled)return;alert("문서 준비 중입니다. 10초 정도 소요되니 기다려주세요.");downloadBtn.disabled=true;if(!pdfBytes){alert("PDF를 먼저 선택하세요");downloadBtn.disabled=false;return;}try{const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);const pages=pdfDoc.getPages();const canv=document.querySelectorAll("#pdf-preview canvas");const embed=async(info,id)=>{if(!info.dataURL||info.page===null)return;const img=document.getElementById(id);const c=canv[info.page];const page=pages[info.page];const cR=c.getBoundingClientRect();const iR=img.getBoundingClientRect();const sX=page.getWidth()/cR.width,sY=page.getHeight()/cR.height;const x=(iR.left-cR.left)*sX;const y=page.getHeight()-(iR.top-cR.top)*sY-iR.height*sY;const png=await pdfDoc.embedPng(info.dataURL);page.drawImage(png,{x,y,width:iR.width*sX,height:iR.height*sY});};await embed(nameInfo,"name-img");await embed(sigInfo,"signature-img");const bytes=await pdfDoc.save();const blob=new Blob([bytes],{type:"application/pdf"});const filename=`signed_${Date.now()}.pdf`;const snap=await storage.ref().child(`signed_docs/${filename}`).put(blob);const dl=await snap.ref.getDownloadURL();console.log("📦 Firebase URL:",dl);const a=document.createElement("a");a.href=dl;a.download=filename;document.body.appendChild(a);a.click();a.remove();await emailjs.send("service_v5hek3f","template_8u7pmwc",{to_email:"moonstar1268@kaist.ac.kr",pdf_link:dl});alert("✅ 이메일 전송 완료! (Firebase 링크 포함)");}catch(err){console.error(err);alert("❌ 오류:"+err.message);}finally{downloadBtn.disabled=false;}};
+
+window.onload=()=>{
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+  loadPDF();
+};
+</script>
+</body>
+</html>
