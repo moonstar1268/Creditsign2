@@ -79,15 +79,13 @@ document.getElementById("download").onclick = async () => {
   a.download = "signed_document.pdf";
   a.click();
 
-  // 이메일 발송 처리
   const reader = new FileReader();
   reader.onloadend = function() {
-    const base64data = reader.result.split(',')[1];
+    const base64data = reader.result;
 
     emailjs.send("service_v5hek3f", "template_8u7pmwc", {
-      pdf_link: url,
-      to_email: "moonstar1268@kaist.ac.kr",
-      attachment: base64data
+      pdf_link: base64data,
+      to_email: "moonstar1268@kaist.ac.kr"
     })
     .then(() => alert("PDF가 이메일로 전송되었습니다."))
     .catch(err => alert("이메일 전송 실패: " + err));
