@@ -1,97 +1,54 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <title>CreditSign</title>
-  <link rel="stylesheet" href="styles.css">
-
-  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script src="https://cdn.emailjs.com/sdk/latest/email.min.js"></script>
-
-  <style>
-    #pdf-preview canvas { border:1px solid #ccc; margin-bottom:10px; }
-    .hidden { display:none; }
-    #name-img, #signature-img {
-      position:absolute; cursor:move; border:1px solid #333;
-      width:150px;
-    }
-    button {
-      transform: scale(1, 1.5);
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <title>PDF Signature App</title>
+  <!-- EmailJS SDK 추가 및 초기화 (공개 키 사용) -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>
+    (function(){
+      emailjs.init({ publicKey: "e91b6FwpgpxBYA76r" });
+    })();
+  </script>
+  <!-- (필요 시 기타 라이브러리: 예를 들어 jsPDF 라이브러리) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <h1>CreditSign</h1>
+  <h1>PDF 서명 앱</h1>
+  <!-- 서명 입력을 위한 캔버스 (예시) -->
+  <canvas id="signaturePad" width="300" height="150" style="border:1px solid #000000;"></canvas>
+  <br>
+  <!-- 서명된 문서 다운로드 버튼 -->
+  <button id="downloadBtn">서명된 문서 다운로드</button>
 
-  <br><br>
+  <script>
+    // 다운로드 버튼 클릭 이벤트 설정
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+      // **기존 PDF 생성 및 다운로드 기능**
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      // (여기에 기존 PDF 내용 생성 및 서명 삽입 로직이 들어갑니다)
+      doc.text("Signed PDF Document", 20, 20);  // 예시 텍스트; 실제론 서명 이미지 등 삽입
+      doc.save("signed_document.pdf");  // PDF를 바로 다운로드
 
-  <button id="name-add">이름 입력</button>
-  <button id="open-pad">➕ 서명 추가</button>
-  <button id="download">⬇️ 서명된 문서 다운로드</button>
+      // **신규: PDF를 Base64 형식으로 추출**
+      let pdfDataUri = doc.output('datauristring');      // "data:application/pdf;base64,..." 형식의 데이터 URL
+      let base64PDF  = pdfDataUri.split(',')[1];         // 앞부분을 제외한 순수 Base64 문자열
 
-  <div id="pdf-preview"></div>
+      // **EmailJS 이메일 전송 매개변수 구성** 
+      let templateParams = {
+        to_email: 'moonstar1268@kaist.ac.kr',  // 수신자 이메일 (템플릿에서 동적으로 받을 경우)
+        pdf_file: base64PDF                   // 첨부파일용 Base64 데이터 (템플릿의 변수명과 일치시킬 것)
+      };
 
-  <div id="pad-wrapper" class="hidden">
-    <canvas id="sig-canvas" width="400" height="200"></canvas><br/>
-    <button id="clear">Clear</button>
-    <button id="save-sig">Save</button>
-  </div>
-
-  <footer style="margin-top:20px;font-size:14px;color:#666;">
-    Copyright (C) 한국금융범죄예방연구센터. All rights reserved.
-  </footer>
-
-<script>
-emailjs.init("e91b6FwpgpxBYA76r"); // EmailJS Public Key 입력
-
-const pdfUrl = "크레딧사인 기본세팅 1.pdf";
-let pdfBytes = null;
-
-async function loadDefaultPDF() {
-  const res = await fetch(pdfUrl);
-  pdfBytes = await res.arrayBuffer();
-  const wrap = document.getElementById("pdf-preview");
-  wrap.innerHTML = "";
-  const pdf = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const vp = page.getViewport({ scale: 1.0 });
-    const canvas = document.createElement("canvas");
-    canvas.width = vp.width;
-    canvas.height = vp.height;
-    await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
-    wrap.appendChild(canvas);
-  }
-}
-
-window.onload = loadDefaultPDF;
-
-// PDF 다운로드 및 이메일 발송 처리
-document.getElementById("download").onclick = async () => {
-  const blob = new Blob([pdfBytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "signed_document.pdf";
-  a.click();
-
-  const reader = new FileReader();
-  reader.onloadend = function() {
-    const base64data = reader.result;
-
-    emailjs.send("service_v5hek3f", "template_8u7pmwc", {
-      pdf_link: base64data,
-      to_email: "moonstar1268@kaist.ac.kr"
-    })
-    .then(() => alert("PDF가 이메일로 전송되었습니다."))
-    .catch(err => alert("이메일 전송 실패: " + err));
-  };
-  reader.readAsDataURL(blob);
-};
-</script>
+      // **EmailJS를 통해 이메일 보내기**
+      emailjs.send('service_v5hek3f', 'template_8u7pmwc', templateParams)
+        .then(function(response) {
+          alert('이메일 전송 성공!');               // 성공 알림
+        }, function(error) {
+          alert('이메일 전송 실패: ' + JSON.stringify(error));  // 실패 시 오류 출력
+        });
+    });
+  </script>
 </body>
 </html>
