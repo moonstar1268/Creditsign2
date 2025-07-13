@@ -38,14 +38,14 @@
     .hidden{display:none}
     #agree-img,#name-img,#signature-img{position:absolute;cursor:move;border:1px solid #333;width:150px}
     button[disabled]{opacity:.4;cursor:not-allowed}
-    /* 단순히 버튼만 숨김 */
+    /* ==== 버튼만 숨김 ==== */
     #form1-tab,#form2-tab{display:none}
   </style>
 </head>
 <body>
   <h1>CreditSign</h1>
 
-  <!-- 숨겨진 상태로 남겨둔 전환 버튼 (기능 유지) -->
+  <!-- 전환 버튼: 기능은 유지하되 화면엔 안 보이게 -->
   <button id="form1-tab">컨설팅 의뢰</button>
   <button id="form2-tab">회원가입 신청</button>
   <br/><br/>
@@ -174,9 +174,41 @@ downloadBtn.onclick=async()=>{
     const canv=document.querySelectorAll("#pdf-preview canvas");
     const embed=async(info,id)=>{
       if(!info.dataURL||info.page===null) return;
-      const	img=document.getElementById(id);
-      const	c=canv[info.page]; const page=pages[info.page];
+      const img=document.getElementById(id);
+      const c=canv[info.page]; const page=pages[info.page];
       const cR=c.getBoundingClientRect(); const iR=img.getBoundingClientRect();
       const sX=page.getWidth()/cR.width, sY=page.getHeight()/cR.height;
       const x=(iR.left-cR.left)*sX;
-      const y=page.getHeight()-(iR.top
+      const y=page.getHeight()-(iR.top-cR.top)*sY-iR.height*sY;
+      const png=await pdfDoc.embedPng(info.dataURL);
+      page.drawImage(png,{x,y,width:iR.width*sX,height:iR.height*sY});
+    };
+    await embed(agreeInfo,"agree-img");
+    await embed(nameInfo ,"name-img");
+    await embed(sigInfo  ,"signature-img");
+
+    const bytes=await pdfDoc.save();
+    const blob=new Blob([bytes],{type:"application/pdf"});
+    const filename=`signed_${Date.now()}.pdf`;
+
+    const snap=await storage.ref().child(`signed_docs/${filename}`).put(blob);
+    const dl  =await snap.ref.getDownloadURL();
+
+    const a=document.createElement("a"); a.href=dl; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+
+    await emailjs.send("service_v5hek3f","template_8u7pmwc",{to_email:"moonstar1268@kaist.ac.kr",pdf_link:dl});
+    alert("✅ 이메일 전송 완료! (Firebase 링크 포함)");
+  }catch(err){
+    console.error(err); alert("❌ 오류:"+err.message);
+  }
+  // downloadBtn.disabled=false; // 필요 시 재활성화
+};
+
+/********************** 5. 최초 로드 *************************/
+window.onload=()=>{
+  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+  loadDefaultPDF("회원가입 신청");
+};
+</script>
+</body>
+</html>
