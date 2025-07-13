@@ -34,18 +34,18 @@
   </script>
 
   <style>
-    #pdf-preview canvas{border:1px solid #ccc;margin-bottom:10px}
+    #pdf-preview canvas{border:1px solid #ccc;margin-bottom:10px;max-width:100%}
     .hidden{display:none}
     #agree-img,#name-img,#signature-img{position:absolute;cursor:move;border:1px solid #333;width:150px}
     button[disabled]{opacity:.4;cursor:not-allowed}
-    /* 숨길 버튼 */
+    /* 단순히 버튼만 숨김 */
     #form1-tab,#form2-tab{display:none}
   </style>
 </head>
 <body>
   <h1>CreditSign</h1>
 
-  <!-- 숨겨진 버튼이지만, DOM 유지 -->
+  <!-- 숨겨진 상태로 남겨둔 전환 버튼 (기능 유지) -->
   <button id="form1-tab">컨설팅 의뢰</button>
   <button id="form2-tab">회원가입 신청</button>
   <br/><br/>
@@ -79,6 +79,7 @@ let pdfBytes=null,
 
 async function loadDefaultPDF(name){
   const res=await fetch(encodeURI(pdfUrls[name]));
+  if(!res.ok){alert("PDF 로드 실패: "+res.status);return;}
   pdfBytes=await res.arrayBuffer();
   agreeInfo={page:null,dataURL:null};
   nameInfo ={page:null,dataURL:null};
@@ -169,4 +170,13 @@ downloadBtn.onclick=async()=>{
   if(!pdfBytes){alert("PDF를 먼저 선택하세요");downloadBtn.disabled=false;return;}
   try{
     const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
-    const pages
+    const pages=pdfDoc.getPages();
+    const canv=document.querySelectorAll("#pdf-preview canvas");
+    const embed=async(info,id)=>{
+      if(!info.dataURL||info.page===null) return;
+      const	img=document.getElementById(id);
+      const	c=canv[info.page]; const page=pages[info.page];
+      const cR=c.getBoundingClientRect(); const iR=img.getBoundingClientRect();
+      const sX=page.getWidth()/cR.width, sY=page.getHeight()/cR.height;
+      const x=(iR.left-cR.left)*sX;
+      const y=page.getHeight()-(iR.top
