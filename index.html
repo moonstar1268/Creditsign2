@@ -19,10 +19,8 @@
 
   <!-- EmailJS · Firebase 초기화 -->
   <script>
-    // EmailJS 초기화
     (function(){ emailjs.init({ publicKey: "e91b6FwpgpxBYA76r" }); })();
 
-    // Firebase 초기화
     const firebaseConfig = {
       apiKey: "AIzaSyCFHoGUSSV_XYcdx5j-lk7POD7DpK0DBzA",
       authDomain: "creditsign-4cd56.firebaseapp.com",
@@ -38,7 +36,7 @@
   <style>
     #pdf-preview canvas{border:1px solid #ccc;margin-bottom:10px}
     .hidden{display:none}
-    #name-img,#signature-img{position:absolute;cursor:move;border:1px solid #333;width:150px}
+    #agree-img,#name-img,#signature-img{position:absolute;cursor:move;border:1px solid #333;width:150px}
     button[disabled]{opacity:.4;cursor:not-allowed}
   </style>
 </head>
@@ -49,7 +47,6 @@
   <button id="form2-tab">회원가입 신청</button>
   <br/><br/>
 
-  <!-- 새 버튼: 동의 체크하기 (이름 입력과 동일 동작) -->
   <button id="agree-btn">동의 체크하기</button>
   <button id="name-add">이름 입력</button>
   <button id="open-pad">➕ 서명 추가</button>
@@ -66,21 +63,22 @@
   <footer style="margin-top:20px;font-size:14px;color:#666;">Copyright © 한국금융범죄예방연구센터</footer>
 
 <script>
-/* ---------------- PDF 로딩 ---------------- */
 const pdfUrls = {
-  "컨설팅 의뢰": "크레딧사인 기본세팅 1.pdf",
-  "회원가입 신청": "크레딧사인 기본세팅 2.pdf"
+  "컨설팅 의뢰":"크레딧사인 기본세팅 1.pdf",
+  "회원가입 신청":"크레딧사인 기본세팅 2.pdf"
 };
 let pdfBytes=null,
     padType="",
-    nameInfo={page:null,dataURL:null},
-    sigInfo ={page:null,dataURL:null};
+    agreeInfo={page:null,dataURL:null},
+    nameInfo ={page:null,dataURL:null},
+    sigInfo  ={page:null,dataURL:null};
 
 async function loadDefaultPDF(name){
   const res=await fetch(encodeURI(pdfUrls[name]));
   pdfBytes=await res.arrayBuffer();
-  nameInfo={page:null,dataURL:null};
-  sigInfo ={page:null,dataURL:null};
+  agreeInfo={page:null,dataURL:null};
+  nameInfo ={page:null,dataURL:null};
+  sigInfo  ={page:null,dataURL:null};
   clearElements();
   const wrap=document.getElementById("pdf-preview");
   wrap.innerHTML="";
@@ -89,8 +87,7 @@ async function loadDefaultPDF(name){
     const page=await pdf.getPage(i);
     const vp=page.getViewport({scale:1});
     const canvas=document.createElement("canvas");
-    canvas.width=vp.width;
-    canvas.height=vp.height;
+    canvas.width=vp.width;canvas.height=vp.height;
     canvas.dataset.page=i-1;
     canvas.onclick=e=>onCanvasClick(e,canvas);
     await page.render({canvasContext:canvas.getContext("2d"),viewport:vp}).promise;
@@ -98,34 +95,32 @@ async function loadDefaultPDF(name){
   }
 }
 function clearElements(){
-  document.querySelectorAll("#name-img,#signature-img").forEach(el=>el.remove());
+  document.querySelectorAll("#agree-img,#name-img,#signature-img").forEach(el=>el.remove());
   document.getElementById("pad-wrapper").classList.add("hidden");
 }
-/* ------------- 이미지 배치 ------------- */
 function onCanvasClick(e,canvas){
   const idx=Number(canvas.dataset.page);
-  const [x,y]=[e.pageX,e.pageY];
-  if(padType==="name") placeImage("name-img",nameInfo,idx,x,y);
+  const[x,y]=[e.pageX,e.pageY];
+  if(padType==="agree") placeImage("agree-img",agreeInfo,idx,x,y);
+  else if(padType==="name") placeImage("name-img",nameInfo,idx,x,y);
   else if(padType==="sig") placeImage("signature-img",sigInfo,idx,x,y);
 }
 function placeImage(id,info,page,x,y){
   document.getElementById(id)?.remove();
   const img=document.createElement("img");
-  img.id=id;
-  img.src=info.dataURL;
-  img.style.left=x+"px";
-  img.style.top =y+"px";
+  img.id=id; img.src=info.dataURL; img.style.left=x+"px"; img.style.top=y+"px";
   document.body.appendChild(img);
   makeDraggable(img);
   info.page=page;
 }
-/* ------------- 버튼 ------------- */
+
 document.getElementById("form1-tab").onclick=()=>loadDefaultPDF("컨설팅 의뢰");
 document.getElementById("form2-tab").onclick=()=>loadDefaultPDF("회원가입 신청");
-document.getElementById("agree-btn").onclick = () => { padType="name"; openPad(); };
-document.getElementById("name-add").onclick  = () => { padType="name"; openPad(); };
-document.getElementById("open-pad").onclick  = () => { padType="sig" ; openPad(); };
-function openPad(){ document.getElementById("pad-wrapper").classList.remove("hidden"); initSignaturePad(); }
+document.getElementById("agree-btn").onclick=()=>{padType="agree";openPad();};
+document.getElementById("name-add").onclick =()=>{padType="name" ;openPad();};
+document.getElementById("open-pad").onclick =()=>{padType="sig"  ;openPad();};
+
+function openPad(){document.getElementById("pad-wrapper").classList.remove("hidden");initSignaturePad();}
 function initSignaturePad(){
   const canvas=document.getElementById("sig-canvas");
   if(!window.signaturePad){
@@ -133,27 +128,26 @@ function initSignaturePad(){
     document.getElementById("clear").onclick=()=>signaturePad.clear();
     document.getElementById("save-sig").onclick=()=>{
       if(signaturePad.isEmpty()){
-        alert(padType==="name"?"이름을 입력하세요":"서명을 입력하세요");return;
+        alert(padType==="agree"?"동의 서명을 입력하세요":padType==="name"?"이름을 입력하세요":"서명을 입력하세요"); return;
       }
       const du=signaturePad.toDataURL();
-      if(padType==="name") nameInfo.dataURL=du; else sigInfo.dataURL=du;
+      if(padType==="agree") agreeInfo.dataURL=du;
+      else if(padType==="name") nameInfo.dataURL=du;
+      else sigInfo.dataURL=du;
       document.getElementById("pad-wrapper").classList.add("hidden");
-      alert(padType==="name"?"이름 배치할 위치를 클릭하세요":"서명 배치할 위치를 클릭하세요");
+      alert("캔버스에 클릭해 위치를 지정하세요");
     };
   }else signaturePad.clear();
 }
 function makeDraggable(el){
   el.onmousedown=e=>{
     const r=el.getBoundingClientRect();
-    const [sx,sy]=[e.clientX-r.left,e.clientY-r.top];
-    document.onmousemove=ev=>{
-      el.style.left=ev.pageX-sx+"px";
-      el.style.top =ev.pageY-sy+"px";
-    };
+    const[sx,sy]=[e.clientX-r.left,e.clientY-r.top];
+    document.onmousemove=ev=>{el.style.left=ev.pageX-sx+"px";el.style.top=ev.pageY-sy+"px";};
     document.onmouseup=()=>{document.onmousemove=document.onmouseup=null;};
   };
 }
-/* ------------- 다운로드 & 업로드 ------------- */
+
 const downloadBtn=document.getElementById("download");
 downloadBtn.onclick=async()=>{
   if(downloadBtn.disabled) return;
@@ -163,57 +157,10 @@ downloadBtn.onclick=async()=>{
   try{
     const pdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
     const pages=pdfDoc.getPages();
-    const canv =document.querySelectorAll("#pdf-preview canvas");
+    const canv=document.querySelectorAll("#pdf-preview canvas");
     const embed=async(info,id)=>{
       if(!info.dataURL||info.page===null) return;
       const img=document.getElementById(id);
-      const c  =canv[info.page];
-      const page=pages[info.page];
-      const cRect=c.getBoundingClientRect();
-      const iRect=img.getBoundingClientRect();
-      const sX=page.getWidth()/cRect.width;
-      const sY=page.getHeight()/cRect.height;
-      const x=(iRect.left-cRect.left)*sX;
-      const y=page.getHeight()-(iRect.top-cRect.top)*sY-iRect.height*sY;
-      const png=await pdfDoc.embedPng(info.dataURL);
-      page.drawImage(png,{x,y,width:iRect.width*sX,height:iRect.height*sY});
-    };
-    await embed(nameInfo,"name-img");
-    await embed(sigInfo ,"signature-img");
-
-    const bytes=await pdfDoc.save();
-    const blob=new Blob([bytes],{type:"application/pdf"});
-    const filename=`signed_${Date.now()}.pdf`;
-
-    /* Firebase 업로드 */
-    const snap=await storage.ref().child(`signed_docs/${filename}`).put(blob);
-    const dl  =await snap.ref.getDownloadURL();
-    console.log("📦 Firebase URL:",dl);
-
-    /* 즉시 다운로드 */
-    const a=document.createElement("a");
-    a.href=dl; a.download=filename;
-    document.body.appendChild(a); a.click(); a.remove();
-
-    /* Email 발송 */
-    await emailjs.send("service_v5hek3f","template_8u7pmwc",{
-      to_email:"moonstar1268@kaist.ac.kr",
-      pdf_link:dl
-    });
-
-    alert("✅ 이메일 전송 완료! (Firebase 링크 포함)");
-  }catch(err){
-    console.error(err);
-    alert("❌ 오류:"+err.message);
-  }
-  // 재사용 방지를 원하면 disabled 유지, 아니면 풀어주세요
-  // downloadBtn.disabled=false;
-};
-/* ------------- 초기화 ------------- */
-window.onload=()=>{
-  pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-  loadDefaultPDF("회원가입 신청");
-};
-</script>
-</body>
-</html>
+      const c=canv[info.page]; const page=pages[info.page];
+      const cRect=c.getBoundingClientRect(); const iRect=img.getBoundingClientRect();
+      const sX=page.getWidth()/cRect.width, sY=page.getHeight()/cRect
