@@ -205,17 +205,13 @@ document.getElementById("download").onclick = async () => {
   document.body.appendChild(a);
   a.click();
 
-  const reader = new FileReader();
-  reader.onloadend = function() {
-    const base64PDF = reader.result.split(",")[1];
-    emailjs.send("service_v5hek3f", "template_8u7pmwc", {
-      to_email: "moonstar1268@kaist.ac.kr",
-      pdf_file: base64PDF
-    })
-    .then(() => alert("이메일 전송 완료!"))
-    .catch(err => alert("이메일 전송 실패: " + JSON.stringify(err)));
-  };
-  reader.readAsDataURL(blob);
+  // 이메일 전송은 URL로 전달 (Base64 X)
+  emailjs.send("service_v5hek3f", "template_8u7pmwc", {
+    to_email: "moonstar1268@kaist.ac.kr",
+    pdf_link: url
+  })
+  .then(() => alert("이메일 전송 완료! (링크 포함)"))
+  .catch(err => alert("이메일 전송 실패: " + JSON.stringify(err)));
 
   setTimeout(() => {
     URL.revokeObjectURL(url);
